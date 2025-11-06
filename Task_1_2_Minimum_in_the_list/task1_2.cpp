@@ -41,13 +41,9 @@ static void transfer(MinStack& source, MinStack& target) {
         return;
     }
 
-    std::vector<long long> buffer;
-    buffer.reserve(source.size());
     while (!source.empty()) {
-        buffer.push_back(source.top());
+        const long long value = source.top();
         source.pop();
-    }
-    for (long long value : buffer) {
         target.push(value);
     }
 }
@@ -67,6 +63,9 @@ int main() {
     front_stack.mins.reserve(static_cast<std::size_t>(q));
     back_stack.values.reserve(static_cast<std::size_t>(q));
     back_stack.mins.reserve(static_cast<std::size_t>(q));
+
+    std::string output;
+    output.reserve(static_cast<std::size_t>(q) * 12);
 
     for (int i = 0; i < q; ++i) {
         std::string op;
@@ -88,17 +87,21 @@ int main() {
             back_stack.pop();
         }
 
+        long long current_min = -1;
         if (front_stack.empty() && back_stack.empty()) {
-            std::cout << -1;
+            current_min = -1;
         } else if (front_stack.empty()) {
-            std::cout << back_stack.min();
+            current_min = back_stack.min();
         } else if (back_stack.empty()) {
-            std::cout << front_stack.min();
+            current_min = front_stack.min();
         } else {
-            std::cout << std::min(front_stack.min(), back_stack.min());
+            current_min = std::min(front_stack.min(), back_stack.min());
         }
-        std::cout << '\n';
+        output.append(std::to_string(current_min));
+        output.push_back('\n');
     }
+
+    std::cout << output;
 
     return 0;
 }
