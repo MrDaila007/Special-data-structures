@@ -1,6 +1,7 @@
 // Task: Tickets - process seat reservation queries on a railway line.
 // Solution: range maximum segment tree with lazy propagation.
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 #include <limits>
