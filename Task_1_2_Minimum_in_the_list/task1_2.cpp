@@ -1,52 +1,8 @@
-// Optimized deque minimum tracker using two min-stacks with amortized O(1) operations.
-#include <algorithm>
+// Double-ended queue with logarithmic-time minimum using frequency-balanced map.
+#include <deque>
 #include <iostream>
+#include <map>
 #include <string>
-#include <vector>
-
-struct MinStack {
-    std::vector<long long> values;
-    std::vector<long long> mins;
-
-    void push(long long x) {
-        long long current_min = mins.empty() ? x : std::min(x, mins.back());
-        values.push_back(x);
-        mins.push_back(current_min);
-    }
-
-    void pop() {
-        values.pop_back();
-        mins.pop_back();
-    }
-
-    [[nodiscard]] long long top() const {
-        return values.back();
-    }
-
-    [[nodiscard]] long long min() const {
-        return mins.back();
-    }
-
-    [[nodiscard]] bool empty() const {
-        return values.empty();
-    }
-
-    [[nodiscard]] std::size_t size() const {
-        return values.size();
-    }
-};
-
-static void transfer(MinStack& source, MinStack& target) {
-    if (!target.empty() || source.empty()) {
-        return;
-    }
-
-    while (!source.empty()) {
-        const long long value = source.top();
-        source.pop();
-        target.push(value);
-    }
-}
 
 int main() {
     std::ios::sync_with_stdio(false);
@@ -57,12 +13,8 @@ int main() {
         return 0;
     }
 
-    MinStack front_stack;
-    MinStack back_stack;
-    front_stack.values.reserve(static_cast<std::size_t>(q));
-    front_stack.mins.reserve(static_cast<std::size_t>(q));
-    back_stack.values.reserve(static_cast<std::size_t>(q));
-    back_stack.mins.reserve(static_cast<std::size_t>(q));
+    std::deque<long long> dq;
+    std::map<long long, int> freq;
 
     std::string output;
     output.reserve(static_cast<std::size_t>(q) * 12);
@@ -74,29 +26,34 @@ int main() {
         if (op == "+L") {
             long long x;
             std::cin >> x;
-            front_stack.push(x);
+            dq.push_front(x);
+            ++freq[x];
         } else if (op == "+R") {
             long long x;
             std::cin >> x;
-            back_stack.push(x);
+            dq.push_back(x);
+            ++freq[x];
         } else if (op == "-L") {
-            transfer(back_stack, front_stack);
-            front_stack.pop();
+            if (!dq.empty()) {
+                const long long value = dq.front();
+                dq.pop_front();
+                auto it = freq.find(value);
+                if (--(it->second) == 0) {
+                    freq.erase(it);
+                }
+            }
         } else if (op == "-R") {
-            transfer(front_stack, back_stack);
-            back_stack.pop();
+            if (!dq.empty()) {
+                const long long value = dq.back();
+                dq.pop_back();
+                auto it = freq.find(value);
+                if (--(it->second) == 0) {
+                    freq.erase(it);
+                }
+            }
         }
 
-        long long current_min = -1;
-        if (front_stack.empty() && back_stack.empty()) {
-            current_min = -1;
-        } else if (front_stack.empty()) {
-            current_min = back_stack.min();
-        } else if (back_stack.empty()) {
-            current_min = front_stack.min();
-        } else {
-            current_min = std::min(front_stack.min(), back_stack.min());
-        }
+        const long long current_min = freq.empty() ? -1 : freq.begin()->first;
         output.append(std::to_string(current_min));
         output.push_back('\n');
     }
