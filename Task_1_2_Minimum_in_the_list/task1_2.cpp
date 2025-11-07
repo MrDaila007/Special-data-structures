@@ -1,8 +1,6 @@
 // Deque with constant-time minimum using two min-stacks. Amortized O(1) per operation.
 #include <algorithm>
 #include <cstdio>
-#include <iostream>
-#include <string>
 #include <vector>
 
 struct FastInput {
@@ -47,11 +45,11 @@ struct FastInput {
 };
 
 struct MinStack {
-    std::vector<long long> values;
-    std::vector<long long> mins;
+    std::vector<int> values;
+    std::vector<int> mins;
 
-    inline void push(long long x) {
-        const long long current_min = mins.empty() ? x : std::min(x, mins.back());
+    inline void push(int x) {
+        const int current_min = mins.empty() ? x : std::min(x, mins.back());
         values.push_back(x);
         mins.push_back(current_min);
     }
@@ -61,35 +59,115 @@ struct MinStack {
         mins.pop_back();
     }
 
-    [[nodiscard]] inline long long top() const {
+    [[nodiscard]] inline int top() const {
         return values.back();
     }
 
-    [[nodiscard]] inline long long min() const {
+    [[nodiscard]] inline int min() const {
         return mins.back();
     }
 
     [[nodiscard]] inline bool empty() const {
         return values.empty();
     }
+
+    int size() const {
+        return static_cast<int>(values.size());
+    }
 };
 
-static inline void transfer(MinStack& source, MinStack& target) {
-    if (!target.empty() || source.empty()) {
-        return;
+struct MinQueue {
+    MinStack front;
+    MinStack back;
+
+    void push_back(int x) {
+        back.push(x);
     }
 
-    while (!source.empty()) {
-        const long long value = source.top();
-        source.pop();
-        target.push(value);
+    void push_front(int x) {
+        front.push(x);
+    }
+
+    void pop_back() {
+        if (!back.empty()) {
+            back.pop();
+            return;
+        }
+        if (front.size() == 1) {
+            front.pop();
+            return;
+        }
+        balance();
+        back.pop();
+    }
+
+    void pop_front() {
+        if (!front.empty()) {
+            front.pop();
+            return;
+        }
+        if (back.size() == 1) {
+            back.pop();
+            return;   
+        }
+        balance();
+        front.pop();
+    }
+
+    void balance() {
+        if (front.empty() && back.empty()) {
+            std::abort();
+        }
+        if (front.empty()) {
+            balance(back, front);
+        } else{
+            balance(front, back);
+        }
+    }
+
+    void balance(MinStack& source, MinStack& target) {
+        const int total_size = source.size();
+        const int half_size = total_size / 2;
+
+        MinStack temp;
+        temp.values.reserve(static_cast<std::size_t>(half_size));
+        temp.mins.reserve(static_cast<std::size_t>(half_size));
+        for (int i = 0; i < half_size; ++i) {
+            temp.push(source.top());
+            source.pop();
+        }
+        while (!source.empty()) {
+            target.push(source.top());
+            source.pop();
+        }
+        while (!temp.empty()) {
+            source.push(temp.top());
+            temp.pop();
+        }
+    }
+
+    [[nodiscard]] int min() const {
+        if (front.empty()) {
+            return back.min();
+        }
+        if (back.empty()) {
+            return front.min();
+        }
+        return std::min(front.min(), back.min());
+    }
+};
+
+static inline void balance(MinStack& left, MinStack& right) {
+    if (!left.empty() || right.empty()) {
+        return;
+    }
+    while (!left.empty()) {
+        right.push(left.top());
+        left.pop();
     }
 }
 
 int main() {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-
     FastInput input;
 
     int q = static_cast<int>(input.readLong());
@@ -104,10 +182,10 @@ int main() {
     back_stack.values.reserve(static_cast<std::size_t>(q));
     back_stack.mins.reserve(static_cast<std::size_t>(q));
 
-    std::string output;
+    std::vector<char> output;
     output.reserve(static_cast<std::size_t>(q) * 12);
 
-    auto append_number = [&output](long long value) {
+    auto append_number = [&output](int value) {
         if (value == 0) {
             output.push_back('0');
             return;
@@ -132,7 +210,7 @@ int main() {
         const char side = input.readChar();
 
         if (op == '+') {
-            const long long x = input.readLong();
+            const int x = static_cast<int>(input.readLong());
             if (side == 'L') {
                 front_stack.push(x);
             } else {
@@ -140,15 +218,15 @@ int main() {
             }
         } else {  // '-'
             if (side == 'L') {
-                transfer(back_stack, front_stack);
+                balance(back_stack, front_stack);
                 front_stack.pop();
             } else {
-                transfer(front_stack, back_stack);
+                balance(front_stack, back_stack);
                 back_stack.pop();
             }
         }
 
-        long long current_min;
+        int current_min;
         if (front_stack.empty()) {
             current_min = back_stack.empty() ? -1 : back_stack.min();
         } else if (back_stack.empty()) {
@@ -160,7 +238,9 @@ int main() {
         output.push_back('\n');
     }
 
-    std::cout << output;
+    if (!output.empty()) {
+        std::fwrite(output.data(), 1, output.size(), stdout);
+    }
 
     return 0;
 }
