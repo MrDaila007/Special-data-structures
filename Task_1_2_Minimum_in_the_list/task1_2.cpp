@@ -1,6 +1,7 @@
 // Deque with constant-time minimum using two min-stacks. Amortized O(1) per operation.
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 
 struct FastInput {
@@ -48,6 +49,11 @@ struct MinStack {
     std::vector<int> values;
     std::vector<int> mins;
 
+    inline void reserve(std::size_t capacity) {
+        values.reserve(capacity);
+        mins.reserve(capacity);
+    }
+
     inline void push(int x) {
         const int current_min = mins.empty() ? x : std::min(x, mins.back());
         values.push_back(x);
@@ -79,6 +85,11 @@ struct MinStack {
 struct MinQueue {
     MinStack front;
     MinStack back;
+
+    void reserve(std::size_t capacity) {
+        front.reserve(capacity);
+        back.reserve(capacity);
+    }
 
     void push_back(int x) {
         back.push(x);
@@ -155,17 +166,11 @@ struct MinQueue {
         }
         return std::min(front.min(), back.min());
     }
-};
 
-static inline void balance(MinStack& left, MinStack& right) {
-    if (!left.empty() || right.empty()) {
-        return;
+    [[nodiscard]] bool empty() const {
+        return front.empty() && back.empty();
     }
-    while (!left.empty()) {
-        right.push(left.top());
-        left.pop();
-    }
-}
+};
 
 int main() {
     FastInput input;
@@ -175,12 +180,8 @@ int main() {
         return 0;
     }
 
-    MinStack front_stack;
-    MinStack back_stack;
-    front_stack.values.reserve(static_cast<std::size_t>(q));
-    front_stack.mins.reserve(static_cast<std::size_t>(q));
-    back_stack.values.reserve(static_cast<std::size_t>(q));
-    back_stack.mins.reserve(static_cast<std::size_t>(q));
+    MinQueue deque;
+    deque.reserve(static_cast<std::size_t>(q));
 
     std::vector<char> output;
     output.reserve(static_cast<std::size_t>(q) * 12);
@@ -212,28 +213,19 @@ int main() {
         if (op == '+') {
             const int x = static_cast<int>(input.readLong());
             if (side == 'L') {
-                front_stack.push(x);
+                deque.push_front(x);
             } else {
-                back_stack.push(x);
+                deque.push_back(x);
             }
-        } else {  // '-'
+        } else {
             if (side == 'L') {
-                balance(back_stack, front_stack);
-                front_stack.pop();
+                deque.pop_front();
             } else {
-                balance(front_stack, back_stack);
-                back_stack.pop();
+                deque.pop_back();
             }
         }
 
-        int current_min;
-        if (front_stack.empty()) {
-            current_min = back_stack.empty() ? -1 : back_stack.min();
-        } else if (back_stack.empty()) {
-            current_min = front_stack.min();
-        } else {
-            current_min = std::min(front_stack.min(), back_stack.min());
-        }
+        const int current_min = deque.empty() ? -1 : deque.min();
         append_number(current_min);
         output.push_back('\n');
     }

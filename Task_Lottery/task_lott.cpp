@@ -1,19 +1,40 @@
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 using int64 = long long;
+
+static int popcount64(std::uint64_t value) {
+#if defined(__GNUG__) || defined(__clang__)
+    return __builtin_popcountll(static_cast<unsigned long long>(value));
+#elif defined(_MSC_VER)
+    return static_cast<int>(__popcnt64(static_cast<unsigned __int64>(value)));
+#else
+    int count = 0;
+    while (value != 0) {
+        value &= (value - 1);
+        ++count;
+    }
+    return count;
+#endif
+}
 
 static std::vector<std::pair<int, int64>> enumerate(const std::vector<int64>& arr) {
     const int n = static_cast<int>(arr.size());
     std::vector<std::pair<int, int64>> res;
-    res.reserve(1 << n);
-    for (int mask = 1; mask < (1 << n); ++mask) {
-        int bits = __builtin_popcount(static_cast<unsigned>(mask));
+    const std::uint64_t total_masks = n == 0 ? 1ULL : (1ULL << n);
+    res.reserve(total_masks > 0 ? static_cast<std::size_t>(total_masks - 1) : 0);
+    for (std::uint64_t mask = 1; mask < total_masks; ++mask) {
+        const int bits = popcount64(mask);
         int64 sum = 0;
         for (int i = 0; i < n; ++i) {
-            if (mask & (1 << i)) {
+            if (mask & (1ULL << i)) {
                 sum += arr[i];
             }
         }
@@ -23,6 +44,13 @@ static std::vector<std::pair<int, int64>> enumerate(const std::vector<int64>& ar
 }
 
 int main() {
+    if (std::FILE* check = std::fopen("input.txt", "r")) {
+        std::fclose(check);
+        if (std::freopen("input.txt", "r", stdin) != nullptr) {
+            std::FILE* fout = std::freopen("output.txt", "w", stdout);
+            (void)fout;
+        }
+    }
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
 
